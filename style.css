@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    background: #000;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+}
+
+/* Tela principal */
+.tela-jogo {
+    min-height: 100vh;
+
+    display: grid;
+    place-items: center;
+
+    padding: 28px 16px;
+}
+
+/* Organização da cena */
+.cena {
+    width: min(720px, 100%);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 24px;
+
+    /* Referência para posicionar as opções */
+    position: relative;
+}
+
+/* Balão de diálogo 
+.balao {
+    width: min(620px, 100%);
+    min-height: 88px;
+
+    padding: 22px 24px;
+
+    display: grid;
+    place-items: center;
+
+    border: 3px solid white;
+    background: black;
+
+    text-align: center;
+}*/
+
+.balao {
+    width: min(620px, 100%);
+    min-height: 88px;
+
+    padding: 22px 24px;
+
+    display: grid;
+    place-items: center;
+
+    text-align: center;
+}
+
+.balao p {
+    margin: 0;
+
+    font-size: clamp(10px, 1.8vw, 15px);
+    line-height: 1.9;
+}
+
+/* Personagem */
+.personagem {
+    display: block;
+
+    width: clamp(150px, 22vw, 210px);
+    height: auto;
+
+    image-rendering: pixelated;
+
+    animation: flutuar 2.8s ease-in-out infinite;
+}
+
+/* Animação */
+@keyframes flutuar {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-7px);
+    }
+}
+
+/* Área das opções */
+.opcoes {
+    width: min(620px, 100%);
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+
+    /* Posicionamento independente */
+    position: absolute;
+
+    top: calc(100% + 24px);
+
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Botões */
+.opcao {
+    width: 100%;
+
+    padding: 17px 18px;
+
+    border: 2px solid white;
+
+    background: black;
+    color: white;
+
+    font-family: inherit;
+    font-size: clamp(9px, 1.5vw, 12px);
+
+    line-height: 1.8;
+    text-align: left;
+
+    cursor: pointer;
+
+    transition: 0.16s;
+}
+
+/* Efeito ao passar o mouse */
+.opcao:hover,
+.opcao:focus-visible {
+    background: white;
+    color: black;
+
+    outline: none;
+    transform: translateX(5px);
+}
+
+/* Remove a área quando não existem opções */
+.opcoes:empty {
+    display: none;
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+    .cena {
+        gap: 20px;
+    }
+
+    .balao {
+        padding: 18px 14px;
+    }
+
+    .opcao {
+        padding: 14px 12px;
+    }
+}
+
+/* Acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+    .personagem {
+        animation: none;
+    }
+
+    .opcao {
+        transition: none;
+    }
+}
