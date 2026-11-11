@@ -30,10 +30,25 @@ const dialogos = {
     // RESPOSTA PARA A PRIMEIRA ESCOLHA
     quem_e_voce: {
 
-        fala: "Tenho vários vulgos. Mas a partir de agora você pode começar a me chamar de patrão.",
+        fala: "Tenho vários vulgos. Mas a partir de agora você pode começar a me chamar de patrão.", 
 
-        opcoes: []
+        opcoes: [
+            {
+                texto: "...",
+                proximo: "proximo_e_o_diabo"
+            }
+        ]
 
+    },
+
+    proximo_e_o_diabo: {
+        fala: "Sua alma é minha agora.",
+        opcoes: [
+            {
+                texto: "...",
+                proximo: "proximo1"
+            }
+        ]
     },
 
 
@@ -42,12 +57,90 @@ const dialogos = {
 
         fala: "É SENHOR DIABO para você.",
 
-        opcoes: []
+        opcoes: [
+            {
+                texto: "...",
+                proximo: "proximo1"
+            }
+        ]
 
-    }
+    },
+
+    // SEGUNDA FALA DO PERSONAGEM
+    proximo1: {
+
+        falas: [
+
+        "Enfim...",
+
+        "Serei direto com você: eu vim aqui para me alimentar de sua alma.",
+
+        "Porém, o fato é que sua existência é tão insignificante que sua alma sequer possui valor nutricional.",
+
+        "É patético.",
+
+        "Mas não se preocupe, meu escravo.",
+
+        "Te fornecerei uma migalha de relevância.",
+
+        "Farei de você um CHEFE DA MÁFIA. Terá que lidar com DINHEIRO, ASSOCIADOS, POLICIAIS e CIVIS.",
+
+        "Então... acha que consegue lidar com isso?",
+        ],
+
+        opcoes: [
+
+            {
+                texto: "Sim?",
+                proximo: "sim"
+            },
+
+            {
+                texto: "Não.",
+                proximo: "nao"
+            }
+        ]
+
+    },
+
+    // RESPOSTA PARA A PRIMEIRA ESCOLHA DA SEGUNDA FAL
+
+    sim: {
+
+        falas: [
+
+            "Isso! Proatividade! Adoro sujeitos proativos!",
+
+            "Meu reino está cheio deles, afinal."
+
+        ],
+
+        opcoes: [],
+
+        iniciarJogo: true
+
+    },
+
+
+    // RESPOSTA PARA A SEGUNDA ESCOLHA DA SEGUNDA FALA
+
+    nao: {
+
+        falas: [
+
+            "HAHAHAHAHAHA",
+
+            "Fiz parecer que você tinha alguma escolha, não foi?"
+
+        ],
+
+        opcoes: [],
+
+        iniciarJogo: true
+
+    },
 
 };
-
 
 // ==========================================
 // ELEMENTOS DO HTML
@@ -66,6 +159,7 @@ let digitando = false;
 // MOSTRAR DIÁLOGO
 // ==========================================
 
+
 function mostrarDialogo(id) {
 
     const dialogo = dialogos[id];
@@ -77,46 +171,74 @@ function mostrarDialogo(id) {
 
     dialogoAtual = id;
 
-    // Limpa as opções anteriores
     elementoOpcoes.replaceChildren();
-
-    // Limpa a fala anterior
     elementoFala.textContent = "";
 
     if (temporizadorDigitacao) {
         clearTimeout(temporizadorDigitacao);
     }
 
-    let indice = 0;
+    // Aceita tanto uma fala única quanto várias falas
+    const falas = dialogo.falas || [dialogo.fala];
 
     digitando = true;
 
+    let indiceFala = 0;
 
-    // Efeito de digitação
-    function digitar() {
+    function digitarFala() {
 
-        if (indice < dialogo.fala.length) {
+        const mensagem = falas[indiceFala];
 
-            elementoFala.textContent +=
-                dialogo.fala.charAt(indice);
+        let caractere = 0;
 
-            indice++;
+        elementoFala.textContent = "";
 
-            temporizadorDigitacao =
-                setTimeout(digitar, 65);
+        function digitar() {
 
-        } else {
+            if (caractere < mensagem.length) {
 
-            digitando = false;
+                elementoFala.textContent += mensagem.charAt(caractere);
 
-            // Mostra as opções somente após terminar a fala
-            mostrarOpcoes(dialogo.opcoes);
+                caractere++;
+
+                temporizadorDigitacao = setTimeout(digitar, 65);
+
+            } else {
+
+                indiceFala++;
+
+                if (indiceFala < falas.length) {
+
+                    // Espera 1,5 segundo antes da próxima fala
+                    temporizadorDigitacao = setTimeout(digitarFala, 2000);
+
+                } else {
+
+                digitando = false;
+
+                // Verifica se chegou ao final da introdução
+                if (dialogo.iniciarJogo) {
+
+                    iniciarJogo();
+
+                } else {
+
+                    // Mostra as opções normalmente
+                    mostrarOpcoes(dialogo.opcoes || []);
+
+                }
+
+            }
+
+            }
 
         }
 
+        digitar();
+
     }
 
-    digitar();
+    digitarFala();
 
 }
 
@@ -162,3 +284,23 @@ function mostrarOpcoes(opcoes) {
 // ==========================================
 
 mostrarDialogo("inicio");
+
+// ==========================================
+// INICIAR O JOGO
+// ==========================================
+
+function iniciarJogo() {
+
+    // Esconde a introdução
+    document.body.classList.add("modo-jogo");
+
+    // Aguarda 2,5 segundos antes de mostrar os indicadores
+    setTimeout(() => {
+
+        const painel = document.getElementById("painel-status");
+
+        painel.classList.add("visivel");
+
+    }, 2500);
+
+}
