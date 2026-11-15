@@ -152,8 +152,8 @@ const acontecimentos = {
         titulo: "Uma visita inesperada",
         texto: "Chefe, um homem está na entrada dizendo que precisa falar com você. Ele parece bastante nervoso.",
         imagem: null,
-        esquerda: { texto: "Mande-o entrar." },
-        direita: { texto: "Mande-o embora." },
+        esquerda: { texto: "Mande-o entrar.", consequencias: { dinheiro: 10, associados: 5 } },
+        direita: { texto: "Mande-o embora.", consequencias: { civis: 5, policiais: 5 } },
         proximo: "segundo"
     },
     segundo: {
@@ -161,11 +161,67 @@ const acontecimentos = {
         titulo: "Problemas na vizinhança",
         texto: "Um comerciante reclama da presença dos seus associados perto da loja.",
         imagem: null,
-        esquerda: { texto: "Ignore o comerciante." },
-        direita: { texto: "Converse com ele." },
+        esquerda: { texto: "Ignore o comerciante.", consequencias: { dinheiro: 5, associados: 10, civis: -10, policiais: -5 } },
+        direita: { texto: "Converse com ele.", consequencias: { dinheiro: -5, associados: -5, civis: 10, policiais: 5 } },
         proximo: null
     }
 };
+
+// Valores reais e limites opcionais (null significa sem limite). Ajuste min/max
+// para configurar limites sem alterar a lógica das consequências.
+const statusJogo = {
+    dinheiro: { valor: 50, min: null, max: null },
+    associados: { valor: 50, min: null, max: null },
+    civis: { valor: 50, min: null, max: null },
+    policiais: { valor: 50, min: null, max: null }
+};
+const nomesStatus = { dinheiro: "Dinheiro", associados: "Associados", civis: "Civis", policiais: "Policiais" };
+const duracaoAnimacaoStatus = 560;
+
+function valorLimitado(chave, valor) {
+    const config = statusJogo[chave];
+    if (config.min !== null) valor = Math.max(config.min, valor);
+    if (config.max !== null) valor = Math.min(config.max, valor);
+    return valor;
+}
+
+function mostrarPrevisao(consequencias = {}) {
+    Object.keys(statusJogo).forEach((chave) => {
+        const seta = document.querySelector(`[data-indicador="${chave}"]`);
+        if (!seta) return;
+        seta.classList.remove("visivel", "grande");
+        seta.textContent = "";
+        const alteracao = Number(consequencias[chave] ?? 0);
+        if (!Number.isFinite(alteracao) || alteracao === 0) return;
+        const impactoEfetivo = valorLimitado(chave, statusJogo[chave].valor + alteracao) - statusJogo[chave].valor;
+        if (impactoEfetivo === 0) return;
+        seta.textContent = "→";
+        seta.classList.add("visivel");
+        if (Math.abs(impactoEfetivo) >= 20) seta.classList.add("grande");
+    });
+}
+
+function aplicarConsequencias(consequencias = {}) {
+    Object.keys(statusJogo).forEach((chave) => {
+        const status = statusJogo[chave];
+        const valorInicial = status.valor;
+        const alteracao = Number(consequencias[chave] ?? 0);
+        const valorFinal = Number.isFinite(alteracao) ? valorLimitado(chave, valorInicial + alteracao) : valorInicial;
+        // O estado real é atualizado uma vez; a animação afeta somente a exibição.
+        status.valor = valorFinal;
+        const elemento = document.querySelector(`[data-status="${chave}"]`);
+        if (!elemento) return;
+        const inicio = performance.now();
+        function animar(agora) {
+            const progresso = Math.min((agora - inicio) / duracaoAnimacaoStatus, 1);
+            const suavizado = 1 - Math.pow(1 - progresso, 3);
+            elemento.textContent = String(Math.round(valorInicial + (valorFinal - valorInicial) * suavizado));
+            if (progresso < 1) requestAnimationFrame(animar);
+            else elemento.textContent = String(valorFinal);
+        }
+        requestAnimationFrame(animar);
+    });
+}
 
 let acontecimentoAtual = null;
 let temporizadorProximoAcontecimento = null;
@@ -447,6 +503,8 @@ function mostrarAcontecimento(id) {
     botaoDireita.classList.remove("selecionada");
     document.getElementById("texto-esquerda").textContent = evento.esquerda.texto;
     document.getElementById("texto-direita").textContent = evento.direita.texto;
+    evento.decisaoConfirmada = false;
+    mostrarPrevisao();
 
     document.getElementById("popup-evento").classList.add("visivel");
 }
@@ -457,15 +515,19 @@ function selecionarOpcao(lado) {
 
     const botaoEsquerda = document.getElementById("opcao-esquerda");
     const botaoDireita = document.getElementById("opcao-direita");
-    if (botaoEsquerda.disabled || botaoDireita.disabled) return;
+    if (evento.decisaoConfirmada || botaoEsquerda.disabled || botaoDireita.disabled) return;
 
     const escolha = lado === "esquerda" ? evento.esquerda : evento.direita;
     console.log("Escolha realizada:", escolha.texto);
     evento.escolhaRealizada = lado;
+    evento.decisaoConfirmada = true;
 
     botaoEsquerda.disabled = true;
     botaoDireita.disabled = true;
     document.getElementById(`opcao-${lado}`).classList.add("selecionada");
+    // As duas previsões somem assim que a decisão fica confirmada.
+    mostrarPrevisao();
+    aplicarConsequencias(escolha.consequencias);
 
     temporizadorProximoAcontecimento = setTimeout(() => {
         document.getElementById("popup-evento").classList.remove("visivel");
@@ -481,6 +543,31 @@ function selecionarOpcao(lado) {
 
 document.getElementById("opcao-esquerda").addEventListener("click", () => selecionarOpcao("esquerda"));
 document.getElementById("opcao-direita").addEventListener("click", () => selecionarOpcao("direita"));
+
+function atualizarPrevisaoDaOpcao(lado) {
+    const evento = acontecimentos[acontecimentoAtual];
+    if (evento && !evento.decisaoConfirmada) {
+        mostrarPrevisao(evento[lado].consequencias);
+    }
+}
+
+function limparPrevisaoSeSaiu(evento) {
+    if (evento.relatedTarget?.closest?.(".popup-opcao")) return;
+    const focoAtual = document.activeElement;
+    if (focoAtual?.matches?.(".popup-opcao") && !focoAtual.disabled) {
+        atualizarPrevisaoDaOpcao(focoAtual.id === "opcao-esquerda" ? "esquerda" : "direita");
+        return;
+    }
+    mostrarPrevisao();
+}
+
+["esquerda", "direita"].forEach((lado) => {
+    const botao = document.getElementById(`opcao-${lado}`);
+    botao.addEventListener("mouseenter", () => atualizarPrevisaoDaOpcao(lado));
+    botao.addEventListener("mouseleave", limparPrevisaoSeSaiu);
+    botao.addEventListener("focus", () => atualizarPrevisaoDaOpcao(lado));
+    botao.addEventListener("blur", limparPrevisaoSeSaiu);
+});
 
 
 // ==========================================

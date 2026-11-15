@@ -212,6 +212,8 @@ body.modo-jogo .cena {
 .status-item {
     display: grid;
 
+    position: relative;
+
     grid-template-columns: 55px 1fr auto;
 
     align-items: center;
@@ -417,7 +419,30 @@ body.modo-jogo .cena {
 .popup-opcao:focus-visible { outline: 2px solid #aaa; outline-offset: 3px; }
 .popup-opcao:active { transform: scale(.97); }
 .popup-opcao:disabled { opacity: .4; cursor: default; }
-.popup-opcao span:last-child { font-size: 9px; line-height: 1.8; text-align: center; }
+.popup-opcao > span[id^="texto-"] { font-size: 9px; line-height: 1.8; text-align: center; }
+
+/* A seta fica ancorada à linha do status, imediatamente antes do ícone. */
+.status-seta {
+    position: absolute;
+    right: calc(100% + 4px);
+    top: 50%;
+    width: 18px;
+    transform: translateY(-50%);
+    color: #fff;
+    font-family: monospace;
+    font-size: 17px;
+    line-height: 1;
+    text-align: center;
+    visibility: hidden;
+    opacity: 0;
+}
+
+.status-seta.visivel {
+    visibility: visible;
+    opacity: 1;
+}
+
+.status-seta.grande { font-size: 25px; }
 
 @media (max-width: 600px) {
     .area-eventos { padding: 12px; }
