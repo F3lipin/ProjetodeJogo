@@ -148,23 +148,55 @@ const dialogos = {
 
 const acontecimentos = {
     primeiro: {
-        dia: "DIA 01",
         titulo: "Uma visita inesperada",
         texto: "Chefe, um homem está na entrada dizendo que precisa falar com você. Ele parece bastante nervoso.",
         imagem: null,
         esquerda: { texto: "Mande-o entrar.", consequencias: { dinheiro: 10, associados: 5 } },
         direita: { texto: "Mande-o embora.", consequencias: { civis: 5, policiais: 5 } },
-        proximo: "segundo"
     },
     segundo: {
-        dia: "DIA 02",
         titulo: "Problemas na vizinhança",
         texto: "Um comerciante reclama da presença dos seus associados perto da loja.",
         imagem: null,
         esquerda: { texto: "Ignore o comerciante.", consequencias: { dinheiro: 5, associados: 10, civis: -10, policiais: -5 } },
         direita: { texto: "Converse com ele.", consequencias: { dinheiro: -5, associados: -5, civis: 10, policiais: 5 } },
-        proximo: null
-    }
+    },
+    terceiro: {
+        titulo: "Problemas na vizinhança",
+        texto: "Chefe, alguns dos nossos estão vendendo drogas para as crianças. Acho que devíamos tratar disso.",
+        imagem: null,
+        esquerda: { texto: "Puna os responsáveis.", consequencias: { dinheiro: -5, associados: -5, civis: 30 } },
+        direita: { texto: "Se elas podem pagar...", consequencias: { civis: -40} },
+    },
+    quarto: {
+        titulo: "Problemas na vizinhança",
+        texto: "Oficiais estão cobrando grana da gente. Alguns dos nossos não vão gostar, mas pode evitar problemas futuros.",
+        imagem: null,
+        esquerda: { texto: "Dê a eles um agrado.", consequencias: { dinheiro: -20, policiais: 20, associados: -15 } },
+        direita: { texto: "Não sou capacho de policial.", consequencias: { associados: 15, policiais: -20} },
+    },
+    quinto: {
+        titulo: "Problemas na vizinhança",
+        texto: "Um desgraçado que mora há algumas quadras daqui bate na própria mulher toda noite. A polícia não faz nada. Os gritos dela me incomodam.",
+        imagem: null,
+        esquerda: { texto: "Pode dar cabo nele.", consequencias: { civis: 25, associados: 15 } },
+        direita: { texto: "Não é problema nosso.", consequencias: { civis: -25, associados: -10 } },
+    },
+    sexto: {
+        titulo: "Problemas na vizinhança",
+        texto: "Um policial matou um dos nossos. Vai ter revanche! Só precisamos da sua permissão.",
+        imagem: null,
+        esquerda: { texto: "Faça o que deve fazer.", consequencias: { associados: 30, policiais: -25 } },
+        direita: { texto: "Não permito.", consequencias: { associados: -25, policiais: 30 }, ramificacao: "setimo" },
+    },
+    setimo: {
+        somenteRamificacao: true,
+        titulo: "Problemas na vizinhança",
+        texto: "Não posso tolerar isso, chefe. É inegociável.",
+        imagem: null,
+        esquerda: { texto: "Tem razão.", consequencias: { associados: 5, policiais: -25 } },
+        direita: { texto: "Eu gaguejei?", consequencias: { associados: -5 } },
+    },
 };
 
 // Valores reais e limites opcionais (null significa sem limite). Ajuste min/max
@@ -190,7 +222,7 @@ function mostrarPrevisao(consequencias = {}) {
         const seta = document.querySelector(`[data-indicador="${chave}"]`);
         if (!seta) return;
         seta.classList.remove("visivel", "grande");
-        seta.textContent = "";
+        seta.textContent = String.fromCharCode(8594);
         const alteracao = Number(consequencias[chave] ?? 0);
         if (!Number.isFinite(alteracao) || alteracao === 0) return;
         const impactoEfetivo = valorLimitado(chave, statusJogo[chave].valor + alteracao) - statusJogo[chave].valor;
@@ -202,7 +234,7 @@ function mostrarPrevisao(consequencias = {}) {
 }
 
 function aplicarConsequencias(consequencias = {}) {
-    Object.keys(statusJogo).forEach((chave) => {
+    return Promise.all(Object.keys(statusJogo).map((chave) => new Promise((resolver) => {
         const status = statusJogo[chave];
         const valorInicial = status.valor;
         const alteracao = Number(consequencias[chave] ?? 0);
@@ -210,21 +242,31 @@ function aplicarConsequencias(consequencias = {}) {
         // O estado real é atualizado uma vez; a animação afeta somente a exibição.
         status.valor = valorFinal;
         const elemento = document.querySelector(`[data-status="${chave}"]`);
-        if (!elemento) return;
+        if (!elemento) {
+            resolver();
+            return;
+        }
         const inicio = performance.now();
         function animar(agora) {
             const progresso = Math.min((agora - inicio) / duracaoAnimacaoStatus, 1);
             const suavizado = 1 - Math.pow(1 - progresso, 3);
             elemento.textContent = String(Math.round(valorInicial + (valorFinal - valorInicial) * suavizado));
             if (progresso < 1) requestAnimationFrame(animar);
-            else elemento.textContent = String(valorFinal);
+            else {
+                elemento.textContent = String(valorFinal);
+                resolver();
+            }
         }
         requestAnimationFrame(animar);
-    });
+    })));
 }
 
 let acontecimentoAtual = null;
 let temporizadorProximoAcontecimento = null;
+let diaAtual = 1;
+let eventosUtilizados = new Set();
+let partidaEncerrada = false;
+const acontecimentoInicial = "primeiro";
 
 // ==========================================
 // ELEMENTOS DO HTML
@@ -470,7 +512,7 @@ function mostrarOpcoes(opcoes) {
 
 function mostrarAcontecimento(id) {
     const evento = acontecimentos[id];
-    if (!evento) {
+    if (!evento || partidaEncerrada || eventosUtilizados.has(id)) {
         console.error("Acontecimento não encontrado:", id);
         document.getElementById("popup-evento").classList.remove("visivel");
         acontecimentoAtual = null;
@@ -479,8 +521,9 @@ function mostrarAcontecimento(id) {
 
     clearTimeout(temporizadorProximoAcontecimento);
     acontecimentoAtual = id;
+    eventosUtilizados.add(id);
 
-    document.getElementById("numero-dia").textContent = evento.dia;
+    document.getElementById("numero-dia").textContent = `DIA ${String(diaAtual).padStart(2, "0")}`;
     document.getElementById("popup-titulo").textContent = evento.titulo;
     document.getElementById("popup-texto").textContent = evento.texto;
 
@@ -511,7 +554,7 @@ function mostrarAcontecimento(id) {
 
 function selecionarOpcao(lado) {
     const evento = acontecimentos[acontecimentoAtual];
-    if (!evento) return;
+    if (!evento || partidaEncerrada) return;
 
     const botaoEsquerda = document.getElementById("opcao-esquerda");
     const botaoDireita = document.getElementById("opcao-direita");
@@ -527,19 +570,86 @@ function selecionarOpcao(lado) {
     document.getElementById(`opcao-${lado}`).classList.add("selecionada");
     // As duas previsões somem assim que a decisão fica confirmada.
     mostrarPrevisao();
-    aplicarConsequencias(escolha.consequencias);
+    const animacao = aplicarConsequencias(escolha.consequencias);
 
-    temporizadorProximoAcontecimento = setTimeout(() => {
-        document.getElementById("popup-evento").classList.remove("visivel");
-        acontecimentoAtual = null;
-
-        if (evento.proximo) {
-            temporizadorProximoAcontecimento = setTimeout(() => {
-                mostrarAcontecimento(evento.proximo);
-            }, 350);
+    animacao.then(() => {
+        const statusCritico = encontrarStatusCritico();
+        if (statusCritico) {
+            mostrarFimDeJogo(statusCritico);
+            return;
         }
-    }, 700);
+
+        temporizadorProximoAcontecimento = setTimeout(() => {
+            document.getElementById("popup-evento").classList.remove("visivel");
+            acontecimentoAtual = null;
+            continuarPartida(escolha);
+        }, 140);
+    });
 }
+
+function sortearAcontecimentoDisponivel() {
+    const disponiveis = Object.keys(acontecimentos).filter((id) =>
+        !eventosUtilizados.has(id) && !acontecimentos[id].somenteRamificacao
+    );
+    if (disponiveis.length === 0) return null;
+    return disponiveis[Math.floor(Math.random() * disponiveis.length)];
+}
+
+function continuarPartida(escolha) {
+    if (partidaEncerrada) return;
+    const idRamificado = escolha.ramificacao;
+    if (idRamificado && acontecimentos[idRamificado] && !eventosUtilizados.has(idRamificado)) {
+        temporizadorProximoAcontecimento = setTimeout(() => mostrarAcontecimento(idRamificado), 350);
+        return;
+    }
+
+    if (idRamificado) {
+        console.warn("RamificaÃ§Ã£o indisponÃ­vel; seguindo para o sorteio:", idRamificado);
+    }
+    const proximoId = sortearAcontecimentoDisponivel();
+    if (!proximoId) return;
+    diaAtual++;
+    temporizadorProximoAcontecimento = setTimeout(() => mostrarAcontecimento(proximoId), 350);
+}
+
+function encontrarStatusCritico() {
+    return Object.entries(statusJogo).find(([, status]) => status.valor <= 0 || status.valor >= 100) || null;
+}
+
+function mostrarFimDeJogo(statusCritico) {
+    partidaEncerrada = true;
+    acontecimentoAtual = null;
+    clearTimeout(temporizadorProximoAcontecimento);
+    document.getElementById("popup-evento").classList.remove("visivel");
+    document.getElementById("status-fim-jogo").textContent = `Status que encerrou a partida: ${nomesStatus[statusCritico[0]]}.`;
+    document.getElementById("tela-game-over").classList.add("visivel");
+    document.getElementById("tela-game-over").setAttribute("aria-hidden", "false");
+    document.getElementById("botao-tentar-novamente").focus();
+}
+
+function reiniciarPartida() {
+    clearTimeout(temporizadorProximoAcontecimento);
+    partidaEncerrada = false;
+    acontecimentoAtual = null;
+    diaAtual = 1;
+    eventosUtilizados = new Set();
+    Object.values(statusJogo).forEach((status) => { status.valor = 50; });
+    Object.keys(statusJogo).forEach((chave) => {
+        document.querySelector(`[data-status="${chave}"]`).textContent = "50";
+    });
+    Object.values(acontecimentos).forEach((evento) => {
+        delete evento.decisaoConfirmada;
+        delete evento.escolhaRealizada;
+    });
+    document.getElementById("tela-game-over").classList.remove("visivel");
+    document.getElementById("tela-game-over").setAttribute("aria-hidden", "true");
+    document.getElementById("painel-status").classList.add("visivel");
+    document.body.classList.add("modo-jogo");
+    mostrarPrevisao();
+    mostrarAcontecimento(acontecimentoInicial);
+}
+
+document.getElementById("botao-tentar-novamente").addEventListener("click", reiniciarPartida);
 
 document.getElementById("opcao-esquerda").addEventListener("click", () => selecionarOpcao("esquerda"));
 document.getElementById("opcao-direita").addEventListener("click", () => selecionarOpcao("direita"));
