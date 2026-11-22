@@ -374,7 +374,6 @@ body.modo-jogo .cena {
     aspect-ratio: 1;
     display: grid;
     place-items: center;
-    border: 1px solid #777;
     background: #080808;
     text-align: center;
 }
