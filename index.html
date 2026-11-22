@@ -35,14 +35,17 @@
         </section>
 
         <section id="area-eventos" class="area-eventos" aria-live="polite">
-            <div id="popup-evento" class="popup-evento" aria-labelledby="popup-titulo">
+            <div id="popup-evento" class="popup-evento" aria-label="Acontecimento do jogo">
                 <div class="popup-cabecalho">
-                    <span>NOVO ACONTECIMENTO</span>
+                    <span id="popup-personagem">CONSELHEIRO</span>
                     <span id="numero-dia">DIA 01</span>
                 </div>
-                <div class="popup-imagem" aria-label="Imagem do personagem">IMAGEM DO PERSONAGEM</div>
-                <h2 id="popup-titulo"></h2>
-                <p id="popup-texto"></p>
+                <div class="popup-conteudo">
+                    <div class="popup-imagem">
+                        <img id="popup-imagem-personagem" src="" alt="">
+                    </div>
+                    <p id="popup-texto"></p>
+                </div>
                 <div class="popup-opcoes">
                     <button class="popup-opcao" id="opcao-esquerda" type="button">
                         <span id="texto-esquerda"></span>

@@ -146,6 +146,16 @@ const dialogos = {
 // ACONTECIMENTOS DO JOGO
 // ==========================================
 
+// Cadastro centralizado de personagens. Para cadastrar outro personagem,
+// adicione uma entrada aqui e use sua chave no acontecimento correspondente.
+const personagens = {
+    conselheiro: {
+        nome: "CONSELHEIRO",
+        imagem: "imagens/conselheiro.png"
+    }
+};
+const personagemPadrao = "conselheiro";
+
 const acontecimentos = {
     primeiro: {
         titulo: "Uma visita inesperada",
@@ -198,6 +208,11 @@ const acontecimentos = {
         direita: { texto: "Eu gaguejei?", consequencias: { associados: -5 } },
     },
 };
+
+// A ausência de personagem em um acontecimento usa o Conselheiro como padrão.
+Object.values(acontecimentos).forEach((evento) => {
+    evento.personagem ??= personagemPadrao;
+});
 
 // Valores reais e limites opcionais (null significa sem limite). Ajuste min/max
 // para configurar limites sem alterar a lógica das consequências.
@@ -524,19 +539,13 @@ function mostrarAcontecimento(id) {
     eventosUtilizados.add(id);
 
     document.getElementById("numero-dia").textContent = `DIA ${String(diaAtual).padStart(2, "0")}`;
-    document.getElementById("popup-titulo").textContent = evento.titulo;
     document.getElementById("popup-texto").textContent = evento.texto;
 
-    const areaImagem = document.querySelector(".popup-imagem");
-    areaImagem.replaceChildren();
-    if (evento.imagem) {
-        const imagem = document.createElement("img");
-        imagem.src = evento.imagem;
-        imagem.alt = "Personagem do acontecimento";
-        areaImagem.appendChild(imagem);
-    } else {
-        areaImagem.textContent = "IMAGEM DO PERSONAGEM";
-    }
+    const personagem = personagens[evento.personagem] || personagens[personagemPadrao];
+    document.getElementById("popup-personagem").textContent = personagem.nome;
+    const imagemPersonagem = document.getElementById("popup-imagem-personagem");
+    imagemPersonagem.src = personagem.imagem;
+    imagemPersonagem.alt = personagem.nome;
 
     const botaoEsquerda = document.getElementById("opcao-esquerda");
     const botaoDireita = document.getElementById("opcao-direita");
